@@ -6,7 +6,7 @@ type PublicPageProps = {
 export function PublicPage(props: PublicPageProps) {
   return (
     <section class="surface-card dashboard-card public-card">
-      <span class="eyebrow">Pagina publica</span>
+      <span class="eyebrow public-eyebrow">Pagina publica</span>
       <h2 class="form-title">Entrada publica da baseline de referencia</h2>
       <p class="form-copy">
         Esta area existe para fixar a separacao entre pagina publica, paginas de autenticacao, paginas privadas, paginas administrativas e paginas de erro.
