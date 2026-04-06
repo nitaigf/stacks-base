@@ -36,6 +36,10 @@ type Config struct {
 	SMTPFromName       string
 	SMTPFromAddress    string
 	AutoMigrate        bool
+	AdminSeedEnabled   bool
+	AdminInitialName   string
+	AdminInitialEmail  string
+	AdminInitialPass   string
 }
 
 func Load() (Config, error) {
@@ -58,6 +62,15 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("parse AUTO_MIGRATE: %w", err)
 		}
 		autoMigrate = parsed
+	}
+
+	adminSeedEnabled := true
+	if raw := strings.TrimSpace(os.Getenv("ADMIN_SEED_ENABLED")); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse ADMIN_SEED_ENABLED: %w", err)
+		}
+		adminSeedEnabled = parsed
 	}
 
 	cfg := Config{
@@ -84,6 +97,10 @@ func Load() (Config, error) {
 		SMTPFromName:       getEnv("SMTP_FROM_NAME", "Stacks Base"),
 		SMTPFromAddress:    getEnv("SMTP_FROM_ADDRESS", "no-reply@stacks-base.local"),
 		AutoMigrate:        autoMigrate,
+		AdminSeedEnabled:   adminSeedEnabled,
+		AdminInitialName:   getEnv("ADMIN_INITIAL_NAME", "Admin"),
+		AdminInitialEmail:  getEnv("ADMIN_INITIAL_EMAIL", "admin@stacks-base.local"),
+		AdminInitialPass:   getEnv("ADMIN_INITIAL_PASSWORD", "Admin@123456"),
 	}
 
 	if cfg.AccessTokenSecret == "" || cfg.RefreshTokenSecret == "" {
@@ -92,6 +109,16 @@ func Load() (Config, error) {
 
 	if cfg.SMTPHost == "" || cfg.SMTPUsername == "" || cfg.SMTPPassword == "" {
 		return Config{}, fmt.Errorf("smtp configuration is required")
+	}
+
+	if cfg.AdminSeedEnabled {
+		if strings.TrimSpace(cfg.AdminInitialEmail) == "" {
+			return Config{}, fmt.Errorf("ADMIN_INITIAL_EMAIL is required when ADMIN_SEED_ENABLED=true")
+		}
+
+		if strings.TrimSpace(cfg.AdminInitialPass) == "" {
+			return Config{}, fmt.Errorf("ADMIN_INITIAL_PASSWORD is required when ADMIN_SEED_ENABLED=true")
+		}
 	}
 
 	return cfg, nil

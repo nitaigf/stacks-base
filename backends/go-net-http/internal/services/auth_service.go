@@ -28,6 +28,7 @@ func NewAuthService(repo repositories.Repository, tokens *TokenService, email Em
 	return &AuthService{repo: repo, tokens: tokens, email: email}
 }
 
+// REF.AUTH-01|Register
 func (s *AuthService) Register(ctx context.Context, input schemas.RegisterRequest) (AuthResult, error) {
 	passwordHash, err := HashPassword(input.Password)
 	if err != nil {
@@ -67,6 +68,7 @@ func (s *AuthService) Register(ctx context.Context, input schemas.RegisterReques
 	return result, nil
 }
 
+// REF.AUTH-02|Login
 func (s *AuthService) Login(ctx context.Context, input schemas.LoginRequest) (AuthResult, error) {
 	user, err := s.repo.FindUserByEmail(ctx, strings.ToLower(strings.TrimSpace(input.Email)))
 	if err != nil {
@@ -104,6 +106,7 @@ func (s *AuthService) Login(ctx context.Context, input schemas.LoginRequest) (Au
 	return result, nil
 }
 
+// REF.AUTH-03|Logout
 func (s *AuthService) Logout(ctx context.Context, rawRefreshToken string) error {
 	if rawRefreshToken == "" {
 		return NewAppError(http.StatusUnauthorized, "unauthorized", "refresh cookie is required", nil)
@@ -130,6 +133,7 @@ func (s *AuthService) Logout(ctx context.Context, rawRefreshToken string) error 
 	return nil
 }
 
+// REF.AUTH-04|Me
 func (s *AuthService) Me(ctx context.Context, userID string) (repositories.User, error) {
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
@@ -143,6 +147,7 @@ func (s *AuthService) Me(ctx context.Context, userID string) (repositories.User,
 	return user, nil
 }
 
+// REF.AUTH-05|ParseAccessToken
 func (s *AuthService) ParseAccessToken(raw string) (AuthClaims, error) {
 	return s.tokens.ParseAccessToken(raw)
 }

@@ -169,13 +169,15 @@ a {
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .button {
   appearance: none;
   border: 0;
-  border-radius: 999px;
-  padding: 0.95rem 1.35rem;
+  border-radius: var(--radius-md);
+  padding: 0.72rem 1.1rem;
+  line-height: 1.2;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -223,6 +225,7 @@ a {
 .dashboard-card {
   display: grid;
   gap: var(--space-4);
+  justify-items: start;
 }
 
 .error-card {
@@ -242,14 +245,37 @@ a {
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .metric-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  white-space: nowrap;
   border-radius: 999px;
   padding: var(--space-2) var(--space-3);
   background: rgba(217, 119, 6, 0.12);
   color: #9a4f04;
   font-weight: 700;
+}
+
+.public-card .form-copy {
+  max-width: 34rem;
+}
+
+.metric-row-tags {
+  gap: var(--space-2);
+}
+
+.metric-pill-tag {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.95rem;
+}
+
+.button-row-compact .button {
+  min-width: 8.5rem;
 }
 
 /* Layout navigation */

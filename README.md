@@ -83,6 +83,13 @@ Um único `.env.example` de referência define todas as variáveis necessárias,
 
 Na baseline inicial, o envio de e-mail e configurado por SMTP e a referencia local de desenvolvimento usa Mailtrap.
 
+Tambem existem variaveis para bootstrap de admin local na inicializacao do backend:
+
+- `ADMIN_SEED_ENABLED`
+- `ADMIN_INITIAL_NAME`
+- `ADMIN_INITIAL_EMAIL`
+- `ADMIN_INITIAL_PASSWORD`
+
 ### 3.5 Docker Compose
 
 Um único `docker-compose.yml` base com perfis `dev` e `prod`. Todos os projetos utilizam os mesmos serviços de infraestrutura: PostgreSQL 16, Redis 7 e Caddy como reverse proxy com TLS automático. Healthchecks configurados em todos os serviços.
@@ -91,6 +98,19 @@ Um único `docker-compose.yml` base com perfis `dev` e `prod`. Todos os projetos
 
 O schema do banco de dados é definido uma vez, como referência, em SQL puro. Todas as implementações de backend reproduzem esse schema exatamente, cada uma com sua própria ferramenta de migrations. As tabelas, colunas, tipos, constraints e índices são idênticos.
 
+### 3.6.1 Migration e Seed
+
+- **Migration canonica**: `shared/schema.sql` e a fonte de verdade de estrutura.
+- **Aplicacao na baseline Go**: ao iniciar com `AUTO_MIGRATE=true`, o backend aplica `backends/go-net-http/migrations/001_init.up.sql` (idempotente com `if not exists`).
+- **Seed inicial de admin**: com `ADMIN_SEED_ENABLED=true`, o backend cria automaticamente um usuario admin se o e-mail configurado ainda nao existir.
+- **Regra de paridade**: cada stack pode usar ferramenta de migration/seed idiomatica, mas sempre materializando o mesmo schema e o mesmo comportamento de bootstrap.
+
+Credenciais iniciais para teste local:
+
+- Nome: `Admin`
+- E-mail: `admin@stacks-base.local`
+- Senha: `Admin@123456`
+
 ### 3.7 Convenções Gerais
 
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`)
@@ -98,6 +118,22 @@ O schema do banco de dados é definido uma vez, como referência, em SQL puro. T
 - **Endpoints REST:** kebab-case, plural, versionados
 - **JSON:** camelCase em requests e responses
 - **Variáveis de ambiente:** UPPER\_SNAKE\_CASE
+
+### 3.7.1 Referencias Cruzadas (REF.*)
+
+Para facilitar manutencao sincronizada entre stacks, funcoes/metodos equivalentes podem ter um comentario curto de referencia imediatamente acima da declaracao.
+
+Exemplos:
+
+- `// REF.AUTH-01|Register`
+- `// REF.AUTH-02|Login`
+- `// REF.AUTH-03|Logout`
+- `// REF.AUTH-04|Me`
+
+Regra para evitar poluicao visual:
+
+- Aplicar REF em funcoes/metodos de fluxo de negocio, handlers principais e pontos de integracao.
+- Evitar REF em variaveis locais e propriedades comuns; usar apenas quando a equivalencia cross-stack for realmente importante.
 
 ### 3.8 Testes
 

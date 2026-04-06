@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -55,6 +56,10 @@ func run() error {
 		}
 	}
 
+	if err := ensureInitialAdmin(ctx, db, cfg); err != nil {
+		return fmt.Errorf("seed initial admin: %w", err)
+	}
+
 	repo := repositories.NewPostgresRepository(db)
 	tokenService, err := services.NewTokenService(cfg)
 	if err != nil {
@@ -89,5 +94,40 @@ func run() error {
 		return fmt.Errorf("shutdown server: %w", err)
 	}
 
+	return nil
+}
+
+func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg config.Config) error {
+	if !cfg.AdminSeedEnabled {
+		return nil
+	}
+
+	email := strings.ToLower(strings.TrimSpace(cfg.AdminInitialEmail))
+	name := strings.TrimSpace(cfg.AdminInitialName)
+	password := cfg.AdminInitialPass
+
+	var exists bool
+	if err := db.QueryRowContext(ctx, `select exists(select 1 from users where email = $1)`, email).Scan(&exists); err != nil {
+		return fmt.Errorf("check existing admin by email: %w", err)
+	}
+
+	if exists {
+		log.Printf("initial admin already exists for email %s", email)
+		return nil
+	}
+
+	passwordHash, err := services.HashPassword(password)
+	if err != nil {
+		return fmt.Errorf("hash initial admin password: %w", err)
+	}
+
+	if _, err := db.ExecContext(ctx, `
+		insert into users (name, email, password_hash, role, status)
+		values ($1, $2, $3, 'admin', 'active')
+	`, name, email, passwordHash); err != nil {
+		return fmt.Errorf("insert initial admin user: %w", err)
+	}
+
+	log.Printf("initial admin seeded: %s", email)
 	return nil
 }
