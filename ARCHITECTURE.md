@@ -31,9 +31,11 @@ stacks-base/
 ## Boundaries
 
 - shared/ contem as fontes de verdade compartilhadas.
+- shared/bruno/ contem a collection Bruno versionada com requests e assertions para validacao de contrato.
 - backends/ contem implementacoes independentes, sem codigo compartilhado em runtime.
 - frontends/ contem implementacoes independentes, sem dependencia em biblioteca de UI externa.
 - docs/ contem materiais operacionais, guias e detalhamentos nao normativos.
+- docs/flows/ contem diagramas Mermaid de navegacao e sequencias de API, mantidos como documentacao viva.
 
 ## Baseline Inicial
 

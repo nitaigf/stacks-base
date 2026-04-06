@@ -1,10 +1,8 @@
 import { createSignal } from 'solid-js';
-import { logout, me } from '../services/auth';
+import { me } from '../services/auth';
 import { authStore } from '../stores/auth';
 
 type DashboardPageProps = {
-  onLoggedOut: () => void;
-  onAdmin: () => void;
   onFatalError: () => void;
 };
 
@@ -27,21 +25,6 @@ export function DashboardPage(props: DashboardPageProps) {
     }
   };
 
-  const endSession = async () => {
-    try {
-      await logout();
-      authStore.clearSession();
-      setFeedback('Sessao encerrada.');
-      props.onLoggedOut();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Falha ao encerrar sessao.';
-      setFeedback(message);
-      if (message.toLowerCase().includes('internal')) {
-        props.onFatalError();
-      }
-    }
-  };
-
   return (
     <section class="surface-card dashboard-card">
       <span class="eyebrow">Painel protegido</span>
@@ -55,12 +38,6 @@ export function DashboardPage(props: DashboardPageProps) {
       <div class="button-row">
         <button class="button button-primary" type="button" onClick={refreshUser}>
           Recarregar perfil
-        </button>
-        <button class="button button-secondary" type="button" onClick={props.onAdmin}>
-          Area admin
-        </button>
-        <button class="button button-secondary" type="button" onClick={endSession}>
-          Logout
         </button>
       </div>
       {feedback() ? <p class="feedback feedback-success">{feedback()}</p> : null}

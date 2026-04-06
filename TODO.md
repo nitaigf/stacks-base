@@ -17,7 +17,14 @@
 - Fluxo E2E validado tambem para pagina publica, area admin negada e tela de erro 403.
 - Backend endurecido com transacoes em gravacoes sensiveis e resposta previsivel de erros.
 - SMTP Mailtrap configurado localmente via .env da raiz.
-- Promocao de itens para concluido continua pendente de commit.
+- ADR-004 registrado: testabilidade por IA, diagramas Mermaid, Bruno versionado, OpenAPI hand-written.
+- Diagramas Mermaid criados em docs/flows/ para navegacao frontend e sequencia de auth.
+- Collection Bruno criada em shared/bruno/ com requests e assertions para todo o corte vertical.
+- Layouts por zona implementados no frontend: PublicLayout, AuthLayout, PrivateLayout, AdminLayout, ErrorLayout.
+- Paginas refatoradas para delegar navegacao aos layouts.
+- Testes unitarios do frontend passando (11 testes, 3 arquivos).
+- E2E com layouts validado em navegador real (12 checkpoints).
+- CONSTITUTION e ARCHITECTURE atualizados com artefatos de teste obrigatorios.
 
 ## Pronto Para Primeiro Commit
 

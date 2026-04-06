@@ -252,6 +252,67 @@ a {
   font-weight: 700;
 }
 
+/* Layout navigation */
+
+.layout-auth,
+.layout-private,
+.layout-admin {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.layout-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(31, 26, 22, 0.08);
+}
+
+.layout-nav-justified {
+  justify-content: space-between;
+}
+
+.layout-nav-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.layout-nav-user {
+  font-weight: 700;
+  color: var(--color-primary-strong);
+}
+
+.layout-nav-breadcrumb {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-strong);
+}
+
+.button-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.button-link:hover {
+  text-decoration: underline;
+}
+
+.button-sm {
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 880px) {
   .app-shell {
     padding: var(--space-4);

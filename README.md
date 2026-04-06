@@ -103,6 +103,11 @@ O schema do banco de dados é definido uma vez, como referência, em SQL puro. T
 
 Cada stack define os mesmos cenários de teste: registro, login, logout, recuperação de senha, edição de perfil, CRUD de usuários, auditoria. A cobertura mínima exigida é a mesma em todos. A abordagem (unitário, integração, e2e) é adaptada ao que é idiomático em cada linguagem.
 
+- **Testes unitários**: Vitest para frontends TypeScript, Go test para backends Go.
+- **Testes de contrato**: collection Bruno versionada em `shared/bruno/` com assertions por endpoint, executável via CLI.
+- **Testes E2E**: Playwright para navegação em browser real.
+- **Documentação de fluxo**: diagramas Mermaid em `docs/flows/` para que agentes de IA e desenvolvedores entendam rapidamente a navegação do frontend e as sequências de API.
+
 ---
 
 ## 4. O que é Diferente Entre as Stacks

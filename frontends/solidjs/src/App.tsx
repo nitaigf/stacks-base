@@ -4,6 +4,11 @@ import { AdminPage } from './pages/AdminPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ErrorPage } from './pages/ErrorPage';
 import { PublicPage } from './pages/PublicPage';
+import { PublicLayout } from './layouts/PublicLayout';
+import { AuthLayout } from './layouts/AuthLayout';
+import { PrivateLayout } from './layouts/PrivateLayout';
+import { AdminLayout } from './layouts/AdminLayout';
+import { ErrorLayout } from './layouts/ErrorLayout';
 import { authStore } from './stores/auth';
 import { navigate, resolveRoute } from './utils/router';
 
@@ -25,6 +30,17 @@ export default function App() {
   const goApp = () => navigate('/app');
   const goAdmin = () => navigate('/admin');
   const goFatalError = () => navigate('/errors/500');
+
+  const handleLogout = async () => {
+    try {
+      const { logout } = await import('./services/auth');
+      await logout();
+      authStore.clearSession();
+      goLogin();
+    } catch {
+      goFatalError();
+    }
+  };
 
   return (
     <main class="app-shell">
@@ -56,20 +72,41 @@ export default function App() {
           </ul>
         </section>
 
-        {route().kind === 'public' ? <PublicPage onLogin={goLogin} onRegister={goRegister} /> : null}
+        {route().kind === 'public' ? (
+          <PublicLayout>
+            <PublicPage onLogin={goLogin} onRegister={goRegister} />
+          </PublicLayout>
+        ) : null}
         {route().kind === 'auth' ? (
-          <AuthPage
-            mode={route().mode}
-            onModeChange={(mode) => navigate(mode === 'login' ? '/auth/login' : '/auth/register')}
-            onAuthenticated={goApp}
-            onFatalError={goFatalError}
-          />
+          <AuthLayout onHome={goHome}>
+            <AuthPage
+              mode={route().mode}
+              onModeChange={(mode) => navigate(mode === 'login' ? '/auth/login' : '/auth/register')}
+              onAuthenticated={goApp}
+              onFatalError={goFatalError}
+            />
+          </AuthLayout>
         ) : null}
         {route().kind === 'private' ? (
-          <DashboardPage onLoggedOut={goLogin} onAdmin={goAdmin} onFatalError={goFatalError} />
+          <PrivateLayout
+            user={currentUser()}
+            onLogout={handleLogout}
+            onAdmin={goAdmin}
+            onFatalError={goFatalError}
+          >
+            <DashboardPage onFatalError={goFatalError} />
+          </PrivateLayout>
         ) : null}
-        {route().kind === 'admin' ? <AdminPage onBackToApp={goApp} /> : null}
-        {route().kind === 'error' ? <ErrorPage statusCode={route().statusCode} onHome={goHome} onLogin={goLogin} /> : null}
+        {route().kind === 'admin' ? (
+          <AdminLayout onBackToApp={goApp}>
+            <AdminPage />
+          </AdminLayout>
+        ) : null}
+        {route().kind === 'error' ? (
+          <ErrorLayout>
+            <ErrorPage statusCode={route().statusCode} onHome={goHome} onLogin={goLogin} />
+          </ErrorLayout>
+        ) : null}
       </div>
     </main>
   );

@@ -27,4 +27,4 @@ Uma stack so deixa o estado bootstrap quando o corte vertical inicial estiver fu
 
 validated-local significa que a stack passou por validacao local tecnica e E2E, mas ainda pode depender de commit e consolidacao documental antes de ser tratada como referencia estabilizada.
 
-Na baseline atual, essa validacao local inclui SMTP Mailtrap, paginas de erro e tratamento transacional nas operacoes de escrita ja implementadas.
+Na baseline atual, essa validacao local inclui SMTP Mailtrap, paginas de erro, tratamento transacional nas operacoes de escrita, layouts por zona no frontend (PublicLayout, AuthLayout, PrivateLayout, AdminLayout, ErrorLayout), diagramas Mermaid em docs/flows/ e collection Bruno em shared/bruno/.

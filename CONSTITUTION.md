@@ -44,7 +44,15 @@ Toda evolucao funcional deve respeitar a seguinte sequencia operacional:
 
 Essa ordem existe para impedir deriva de escopo, divergencia entre stacks e atraso na sincronizacao das fontes de verdade.
 
-## 6. Rail Guards
+## 6. Artefatos de Teste Obrigatorios
+
+- Collection Bruno em `shared/bruno/` validando todos os endpoints do contrato OpenAPI.
+- Diagramas de fluxo em `docs/flows/` descrevendo navegacao frontend e sequencias de API.
+- Testes unitarios de frontend e backend presentes e passando antes de promover qualquer fase.
+- Testes E2E de frontend via Playwright cobrindo o fluxo autenticado completo.
+- OpenAPI permanece hand-written em `shared/openapi.yaml`. Geradores stack-specific nao sao permitidos.
+
+## 7. Rail Guards
 
 - Nao introduzir framework, biblioteca de UI, protocolo ou padrao arquitetural fora do README sem ADR.
 - Nao criar documentacao operacional fora da pasta docs/.
@@ -52,7 +60,7 @@ Essa ordem existe para impedir deriva de escopo, divergencia entre stacks e atra
 - Nao tratar a baseline inicial como excecao: ela deve seguir as mesmas regras que serao exigidas das demais stacks.
 - Nao inverter a ordem de construcao definida nesta constituicao sem ADR.
 
-## 7. Baseline Inicial
+## 8. Baseline Inicial
 
 - Frontend de referencia: SolidJS.
 - Backend de referencia: Go com net/http.
