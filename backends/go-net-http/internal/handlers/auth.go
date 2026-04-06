@@ -20,6 +20,7 @@ func NewAuthHandler(service *services.AuthService) *AuthHandler {
 	return &AuthHandler{service: service}
 }
 
+// REF.AUTH-01|Register
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var payload schemas.RegisterRequest
 	if err := utils.ReadJSON(r, &payload); err != nil {
@@ -42,6 +43,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, authEnvelope(result))
 }
 
+// REF.AUTH-02|Login
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var payload schemas.LoginRequest
 	if err := utils.ReadJSON(r, &payload); err != nil {
@@ -64,6 +66,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, authEnvelope(result))
 }
 
+// REF.AUTH-03|Logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	_, ok := middleware.AuthClaimsFromContext(r.Context())
 	if !ok {
@@ -86,6 +89,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// REF.AUTH-04|Me
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.AuthClaimsFromContext(r.Context())
 	if !ok {

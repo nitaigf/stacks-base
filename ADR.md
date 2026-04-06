@@ -82,3 +82,27 @@ A baseline precisa ser inteiramente testavel por agentes de IA — fronte, backe
 - Novas stacks devem garantir que seus endpoints passem na mesma collection Bruno.
 - Diagramas Mermaid devem ser atualizados quando rotas ou fluxos mudarem.
 - Nenhum gerador de OpenAPI pode ser introduzido sem ADR que demonstre paridade preservada.
+
+## ADR-005 - Padrão de Coluna de Ações em Tabelas
+
+- Data: 2026-04-06
+- Status: accepted
+
+### Contexto
+
+A interface do usuário precisa de um padrão consistente para ações em tabelas de dados. A posição e o formato da coluna de ações impactam diretamente a usabilidade e a experiência do usuário em telas administrativas e de listagem.
+
+### Decisão
+
+- A coluna de ações em tabelas deve ser sempre a primeira coluna (à esquerda)
+- As ações devem ser implementadas como botões com ícones, não com texto
+- Cada botão deve ter um tooltip/hint que descreve a ação ao passar o mouse
+- Ícones devem seguir o design system compartilhado e ser semanticamente claros
+- Ações devem seguir ordem de importância: primária (editar), secundária (excluir/desativar), etc.
+
+### Consequências
+
+- Todas as novas tabelas implementadas no projeto devem seguir este padrão
+- Tabelas existentes devem ser migradas para conformidade com este ADR
+- O design system deve incluir ícones padronizados para ações comuns
+- A experiência do usuário se torna mais consistente em toda a aplicação

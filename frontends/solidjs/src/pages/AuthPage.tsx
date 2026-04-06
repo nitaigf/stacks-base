@@ -84,7 +84,7 @@ export function AuthPage(props: AuthPageProps) {
 
   return (
     <section class="surface-card">
-      <span class="eyebrow">Baseline inicial</span>
+      <span class="metric-pill metric-pill-tag">Baseline inicial</span>
       <h2 class="form-title">{props.mode === 'login' ? 'Entrar na referencia' : 'Criar conta de referencia'}</h2>
       <p class="form-copy">
         SolidJS consome o contrato comum do projeto e autentica contra o backend Go em PostgreSQL local.
