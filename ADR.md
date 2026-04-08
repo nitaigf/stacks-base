@@ -68,14 +68,14 @@ O projeto tambem serve como referencia de boas praticas. A baseline precisava de
 
 ### Contexto
 
-A baseline precisa ser inteiramente testavel por agentes de IA — fronte, backend, banco e contratos. Ferramentas de documentacao e teste devem ser legíveis por maquina e mantidas como artefatos vivos no repositorio. A escolha de como especificar APIs impacta diretamente a paridade multi-stack.
+A baseline precisa ser inteiramente testavel por agentes de IA. Ferramentas de documentacao e teste devem ser legiveis por maquina e mantidas como artefatos vivos no repositorio. A escolha de como especificar APIs impacta diretamente a paridade multi-stack.
 
 ### Decisao
 
-- **Testabilidade por IA**: todo artefato executavel do projeto deve ser legivel e acionavel por agentes automatizados. Vitest e Go test cobrem unitarios, Playwright cobre E2E de frontend, Bruno CLI cobre contratos de API.
-- **Mermaid**: diagramas minimalistas de fluxo ficam em `docs/flows/`. Funcionam como mapa rapido para agentes navegarem frontend e entenderem sequencias de API. Nao substituem o codigo como fonte de verdade.
-- **OpenAPI hand-written**: `shared/openapi.yaml` permanece como especificacao unica, escrita manualmente. Geradores stack-specific como swaggo, tsoa ou similares nao sao permitidos porque violam a regra de paridade — cada stack geraria contratos ligeiramente diferentes.
-- **Bruno versionado**: uma collection com requests e assertions vive em `shared/bruno/`. Pode ser executada via CLI para validacao de contrato. Substitui o papel de Postman como ferramenta exploratoria e de teste.
+- Todo artefato executavel do projeto deve ser legivel e acionavel por agentes automatizados.
+- Diagramas minimalistas de fluxo ficam em `docs/flows/`.
+- OpenAPI permanece hand-written e geradores stack-specific nao sao permitidos.
+- Bruno versionado substitui o papel de colecoes ad hoc de API.
 
 ### Consequencias
 
@@ -83,26 +83,46 @@ A baseline precisa ser inteiramente testavel por agentes de IA — fronte, backe
 - Diagramas Mermaid devem ser atualizados quando rotas ou fluxos mudarem.
 - Nenhum gerador de OpenAPI pode ser introduzido sem ADR que demonstre paridade preservada.
 
-## ADR-005 - Padrão de Coluna de Ações em Tabelas
+## ADR-005 - Padrao de Coluna de Acoes em Tabelas
 
 - Data: 2026-04-06
 - Status: accepted
 
 ### Contexto
 
-A interface do usuário precisa de um padrão consistente para ações em tabelas de dados. A posição e o formato da coluna de ações impactam diretamente a usabilidade e a experiência do usuário em telas administrativas e de listagem.
+A interface do usuario precisa de um padrao consistente para acoes em tabelas de dados.
 
-### Decisão
+### Decisao
 
-- A coluna de ações em tabelas deve ser sempre a primeira coluna (à esquerda)
-- As ações devem ser implementadas como botões com ícones, não com texto
-- Cada botão deve ter um tooltip/hint que descreve a ação ao passar o mouse
-- Ícones devem seguir o design system compartilhado e ser semanticamente claros
-- Ações devem seguir ordem de importância: primária (editar), secundária (excluir/desativar), etc.
+- A coluna de acoes em tabelas deve ser sempre a primeira coluna.
+- As acoes devem ser implementadas como botoes com icones ou rotulos curtos.
+- Cada botao deve ter tooltip ou hint descritivo.
+- A ordem de exibicao deve refletir a importancia da acao.
 
-### Consequências
+### Consequencias
 
-- Todas as novas tabelas implementadas no projeto devem seguir este padrão
-- Tabelas existentes devem ser migradas para conformidade com este ADR
-- O design system deve incluir ícones padronizados para ações comuns
-- A experiência do usuário se torna mais consistente em toda a aplicação
+- Novas tabelas devem seguir esse padrao.
+- Tabelas existentes devem convergir para esse padrao.
+
+## ADR-006 - Consolidacao de Especificacoes e Package Manager Oficial da Baseline
+
+- Data: 2026-04-08
+- Status: accepted
+
+### Contexto
+
+A baseline passou a incluir escopo administrativo real, auditoria real, exportacoes e seeds demonstrativos. Os caminhos antigos das especificacoes e a multiplicidade de lockfiles no frontend criavam ambiguidade sobre quais artefatos eram canonicos e como o ambiente devia ser reproduzido.
+
+### Decisao
+
+- OpenAPI hand-written passa a viver em `specs/openapi.yaml`.
+- A collection Bruno versionada passa a viver em `specs/bruno/`.
+- `shared/` permanece reservado para artefatos compartilhados de runtime e desenvolvimento, como schema SQL, design system, `.env.example` e `docker-compose`.
+- O package manager oficial do frontend SolidJS passa a ser `npm`, com `package-lock.json` como lockfile canonico da baseline atual.
+- Toda mudanca comitada que altere o estado validado do sistema deve atualizar `TODO.md` no mesmo conjunto de mudancas.
+
+### Consequencias
+
+- A raiz do repositorio passa a separar claramente runtime compartilhado de especificacoes executaveis.
+- A baseline deixa de depender de interpretacao sobre caminhos antigos como `shared/openapi.yaml` e `shared/bruno/`.
+- O frontend passa a ter reproducao univoca de dependencias enquanto Bun permanece como candidato de stack futura, nao como package manager normativo desta baseline.

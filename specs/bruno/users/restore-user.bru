@@ -1,0 +1,18 @@
+meta {
+  name: Restore User
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/users/{{createdUserId}}/restore
+}
+
+headers {
+  Authorization: Bearer {{adminAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.status: eq active
+}

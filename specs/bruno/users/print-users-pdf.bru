@@ -1,0 +1,17 @@
+meta {
+  name: Print Users PDF
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users/print?query=Bruno
+}
+
+headers {
+  Authorization: Bearer {{adminAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}

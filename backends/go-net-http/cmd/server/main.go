@@ -51,13 +51,16 @@ func run() error {
 	}
 
 	if cfg.AutoMigrate {
-		if err := config.ApplyMigrationFile(ctx, db, "migrations/001_init.up.sql"); err != nil {
+		if err := config.ApplyMigrationDir(ctx, db, "migrations"); err != nil {
 			return fmt.Errorf("apply migrations: %w", err)
 		}
 	}
 
 	if err := ensureInitialAdmin(ctx, db, cfg); err != nil {
 		return fmt.Errorf("seed initial admin: %w", err)
+	}
+	if err := ensureDemoData(ctx, db, cfg); err != nil {
+		return fmt.Errorf("seed demo data: %w", err)
 	}
 
 	repo := repositories.NewPostgresRepository(db)
@@ -66,11 +69,13 @@ func run() error {
 		return fmt.Errorf("create token service: %w", err)
 	}
 	emailService := services.NewSMTPEmailService(cfg)
-	authService := services.NewAuthService(repo, tokenService, emailService)
+	authService := services.NewAuthService(repo, tokenService, emailService, cfg.FrontendBaseURL)
+	userService := services.NewUserService(repo)
+	auditService := services.NewAuditService(repo)
 
 	server := &http.Server{
 		Addr:              cfg.Address(),
-		Handler:           routes.New(cfg, authService),
+		Handler:           routes.New(cfg, authService, userService, auditService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -107,7 +112,7 @@ func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg config.Config) erro
 	password := cfg.AdminInitialPass
 
 	var exists bool
-	if err := db.QueryRowContext(ctx, `select exists(select 1 from users where email = $1)`, email).Scan(&exists); err != nil {
+	if err := db.QueryRowContext(ctx, `select exists(select 1 from users where lower(email) = lower($1) and deleted_at is null)`, email).Scan(&exists); err != nil {
 		return fmt.Errorf("check existing admin by email: %w", err)
 	}
 
@@ -129,5 +134,129 @@ func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg config.Config) erro
 	}
 
 	log.Printf("initial admin seeded: %s", email)
+	return nil
+}
+
+func ensureDemoData(ctx context.Context, db *sql.DB, cfg config.Config) error {
+	if !cfg.DemoSeedEnabled {
+		return nil
+	}
+
+	passwordHash, err := services.HashPassword(cfg.DemoSeedPassword)
+	if err != nil {
+		return fmt.Errorf("hash demo seed password: %w", err)
+	}
+
+	type demoUser struct {
+		Name      string
+		Email     string
+		Role      string
+		Status    string
+		DeletedAt bool
+	}
+
+	users := []demoUser{
+		{Name: "Diego Owner", Email: "diego.owner@stacks-base.local", Role: "admin", Status: "active"},
+		{Name: "Marina Silva", Email: "marina.silva@stacks-base.local", Role: "member", Status: "active"},
+		{Name: "Bruno Costa", Email: "bruno.costa@stacks-base.local", Role: "member", Status: "active"},
+		{Name: "Carla Mendes", Email: "carla.mendes@stacks-base.local", Role: "member", Status: "inactive"},
+		{Name: "Helena Souza", Email: "helena.souza@stacks-base.local", Role: "member", Status: "inactive", DeletedAt: true},
+		{Name: "Paulo Lima", Email: "paulo.lima@stacks-base.local", Role: "member", Status: "active"},
+	}
+
+	for _, user := range users {
+		var exists bool
+		if err := db.QueryRowContext(ctx, `select exists(select 1 from users where lower(email) = lower($1))`, user.Email).Scan(&exists); err != nil {
+			return fmt.Errorf("check demo user %s: %w", user.Email, err)
+		}
+		if exists {
+			continue
+		}
+
+		if _, err := db.ExecContext(ctx, `
+			insert into users (name, email, password_hash, role, status, deleted_at)
+			values ($1, $2, $3, $4, $5, case when $6 then now() else null end)
+		`, user.Name, strings.ToLower(user.Email), passwordHash, user.Role, user.Status, user.DeletedAt); err != nil {
+			return fmt.Errorf("insert demo user %s: %w", user.Email, err)
+		}
+	}
+
+	var auditCount int
+	if err := db.QueryRowContext(ctx, `select count(*) from audit_logs`).Scan(&auditCount); err != nil {
+		return fmt.Errorf("count audit logs: %w", err)
+	}
+	if auditCount > 0 {
+		return nil
+	}
+
+	rows, err := db.QueryContext(ctx, `
+		select id, name, email
+		from users
+		where deleted_at is null
+		order by created_at asc
+		limit 3
+	`)
+	if err != nil {
+		return fmt.Errorf("load users for audit seeds: %w", err)
+	}
+	defer rows.Close()
+
+	type actor struct {
+		ID    string
+		Name  string
+		Email string
+	}
+
+	actors := make([]actor, 0, 3)
+	for rows.Next() {
+		var current actor
+		if err := rows.Scan(&current.ID, &current.Name, &current.Email); err != nil {
+			return fmt.Errorf("scan audit seed user: %w", err)
+		}
+		actors = append(actors, current)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate audit seed users: %w", err)
+	}
+	if len(actors) == 0 {
+		return nil
+	}
+
+	for index, actor := range actors {
+		createdAt := time.Now().Add(time.Duration(-index-1) * time.Hour)
+		if _, err := db.ExecContext(ctx, `
+			insert into audit_logs (
+				actor_user_id,
+				actor_name,
+				actor_email,
+				action,
+				resource,
+				resource_id,
+				route,
+				method,
+				ip_address,
+				user_agent,
+				metadata,
+				created_at
+			)
+			values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12)
+		`,
+			actor.ID,
+			actor.Name,
+			actor.Email,
+			"users.list",
+			"users",
+			actor.ID,
+			"/api/v1/users",
+			"GET",
+			"127.0.0.1",
+			"demo-seed",
+			`{"seed":true}`,
+			createdAt,
+		); err != nil {
+			return fmt.Errorf("insert audit seed for %s: %w", actor.Email, err)
+		}
+	}
+
 	return nil
 }

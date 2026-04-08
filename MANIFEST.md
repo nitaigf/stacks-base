@@ -21,10 +21,10 @@
 
 ## Criterio de Promocao
 
-Uma stack so deixa o estado bootstrap quando o corte vertical inicial estiver funcional, testado e alinhado a shared/openapi.yaml, shared/schema.sql e shared/design-system/.
+Uma stack so deixa o estado bootstrap quando o corte vertical inicial estiver funcional, testado e alinhado a `specs/openapi.yaml`, `shared/schema.sql` e `shared/design-system/`.
 
 ## Observacao de Estado
 
-validated-local significa que a stack passou por validacao local tecnica e E2E, mas ainda pode depender de commit e consolidacao documental antes de ser tratada como referencia estabilizada.
+`validated-local` significa que a stack passou por validacao local tecnica e de runtime, mas ainda pode depender de consolidacao de commit e ampliacao de cobertura antes de ser tratada como referencia estabilizada.
 
-Na baseline atual, essa validacao local inclui SMTP Mailtrap, paginas de erro, tratamento transacional nas operacoes de escrita, layouts por zona no frontend (PublicLayout, AuthLayout, PrivateLayout, AdminLayout, ErrorLayout), diagramas Mermaid em docs/flows/ e collection Bruno em shared/bruno/.
+Na baseline atual, essa validacao local inclui autenticacao completa, gestao real de usuarios, auditoria real persistida, exportacoes CSV/XLSX/PDF, seeds reais, tratamento transacional nas operacoes de escrita, layouts por zona no frontend, diagramas Mermaid em `docs/flows/` e collection Bruno em `specs/bruno/`.

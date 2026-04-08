@@ -13,6 +13,7 @@ import (
 
 type EmailSender interface {
 	SendRegistrationNotice(ctx context.Context, user repositories.User) error
+	SendPasswordResetNotice(ctx context.Context, user repositories.User, resetURL string) error
 }
 
 type SMTPEmailService struct {
@@ -63,9 +64,40 @@ func (s *SMTPEmailService) SendRegistrationNotice(_ context.Context, user reposi
 	return nil
 }
 
+func (s *SMTPEmailService) SendPasswordResetNotice(_ context.Context, user repositories.User, resetURL string) error {
+	auth := smtp.PlainAuth("", s.username, s.password, s.host)
+	recipient := []string{user.Email}
+	body := strings.Join([]string{
+		fmt.Sprintf("From: %s <%s>", s.fromName, s.fromAddress),
+		fmt.Sprintf("To: %s", user.Email),
+		"Subject: Recuperacao de acesso no Stacks Base",
+		"MIME-version: 1.0;",
+		"Content-Type: text/plain; charset=\"UTF-8\";",
+		"",
+		fmt.Sprintf("Ola, %s!", user.Name),
+		"",
+		"Recebemos uma solicitacao para redefinir a sua senha.",
+		fmt.Sprintf("Abra o link abaixo para continuar: %s", resetURL),
+		"",
+		"Se voce nao solicitou esta acao, ignore este e-mail.",
+	}, "\r\n")
+
+	address := fmt.Sprintf("%s:%s", s.host, s.port)
+	if err := smtp.SendMail(address, auth, s.fromAddress, recipient, []byte(body)); err != nil {
+		return fmt.Errorf("send password reset email: %w", err)
+	}
+
+	return nil
+}
+
 type LogOnlyEmailService struct{}
 
 func (s LogOnlyEmailService) SendRegistrationNotice(_ context.Context, user repositories.User) error {
 	log.Printf("email delivery skipped for %s", user.Email)
+	return nil
+}
+
+func (s LogOnlyEmailService) SendPasswordResetNotice(_ context.Context, user repositories.User, resetURL string) error {
+	log.Printf("password reset email skipped for %s (%s)", user.Email, resetURL)
 	return nil
 }

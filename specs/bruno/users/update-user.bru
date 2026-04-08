@@ -1,0 +1,33 @@
+meta {
+  name: Update User
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/users/{{createdUserId}}
+  body: json
+}
+
+headers {
+  Authorization: Bearer {{adminAccessToken}}
+}
+
+body:json {
+  {
+    "name": "Bruno Admin Updated",
+    "email": "bruno-admin-updated-{{$timestamp}}@test.local",
+    "role": "member"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.name: eq Bruno Admin Updated
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("updatedUserEmail", res.body.data.email);
+  }
+}

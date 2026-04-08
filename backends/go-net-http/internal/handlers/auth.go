@@ -33,7 +33,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Register(r.Context(), payload)
+	result, err := h.service.Register(r.Context(), requestMetadataFromRequest(r), payload)
 	if err != nil {
 		h.writeServiceError(w, err, "failed to register user")
 		return
@@ -56,7 +56,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Login(r.Context(), payload)
+	result, err := h.service.Login(r.Context(), requestMetadataFromRequest(r), payload)
 	if err != nil {
 		h.writeServiceError(w, err, "failed to authenticate user")
 		return
@@ -68,8 +68,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // REF.AUTH-03|Logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.AuthClaimsFromContext(r.Context())
-	if !ok {
+	metadata := requestMetadataFromRequest(r)
+	if metadata.ActorUserID == nil {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized", "authentication is required", nil)
 		return
 	}
@@ -80,7 +80,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Logout(r.Context(), refreshCookie.Value); err != nil {
+	if err := h.service.Logout(r.Context(), metadata, refreshCookie.Value); err != nil {
 		h.writeServiceError(w, err, "failed to revoke session")
 		return
 	}
@@ -106,6 +106,86 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"data": sanitizeUser(user)})
 }
 
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var payload schemas.ForgotPasswordRequest
+	if err := utils.ReadJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "invalid_request", "request body is invalid", nil)
+		return
+	}
+
+	if validationErrors := payload.Validate(); len(validationErrors) > 0 {
+		utils.WriteError(w, http.StatusBadRequest, "validation_error", "request body failed validation", validationErrors)
+		return
+	}
+
+	if err := h.service.ForgotPassword(r.Context(), requestMetadataFromRequest(r), payload); err != nil {
+		h.writeServiceError(w, err, "failed to start password recovery")
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusAccepted, map[string]any{
+		"data": map[string]string{
+			"message": "If the account exists, a password recovery message has been sent.",
+		},
+	})
+}
+
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var payload schemas.ResetPasswordRequest
+	if err := utils.ReadJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "invalid_request", "request body is invalid", nil)
+		return
+	}
+
+	if validationErrors := payload.Validate(); len(validationErrors) > 0 {
+		utils.WriteError(w, http.StatusBadRequest, "validation_error", "request body failed validation", validationErrors)
+		return
+	}
+
+	if err := h.service.ResetPassword(r.Context(), requestMetadataFromRequest(r), payload); err != nil {
+		h.writeServiceError(w, err, "failed to reset password")
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]string{
+			"message": "Password updated successfully.",
+		},
+	})
+}
+
+func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.AuthClaimsFromContext(r.Context())
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized", "authentication is required", nil)
+		return
+	}
+
+	var payload schemas.ChangePasswordRequest
+	if err := utils.ReadJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "invalid_request", "request body is invalid", nil)
+		return
+	}
+
+	if validationErrors := payload.Validate(); len(validationErrors) > 0 {
+		utils.WriteError(w, http.StatusBadRequest, "validation_error", "request body failed validation", validationErrors)
+		return
+	}
+
+	metadata := requestMetadataFromRequest(r)
+	if err := h.service.ChangePassword(r.Context(), metadata, claims.UserID, payload); err != nil {
+		h.writeServiceError(w, err, "failed to change password")
+		return
+	}
+
+	h.clearRefreshCookie(w)
+	utils.WriteJSON(w, http.StatusOK, map[string]any{
+		"data": map[string]string{
+			"message": "Password changed successfully. Please sign in again.",
+		},
+	})
+}
+
 func authEnvelope(result services.AuthResult) map[string]any {
 	return map[string]any{
 		"data": map[string]any{
@@ -117,13 +197,16 @@ func authEnvelope(result services.AuthResult) map[string]any {
 
 func sanitizeUser(user repositories.User) map[string]any {
 	return map[string]any{
-		"id":        user.ID,
-		"name":      user.Name,
-		"email":     user.Email,
-		"role":      user.Role,
-		"status":    user.Status,
-		"createdAt": user.CreatedAt,
-		"updatedAt": user.UpdatedAt,
+		"id":          user.ID,
+		"name":        user.Name,
+		"email":       user.Email,
+		"role":        user.Role,
+		"status":      user.Status,
+		"deletedAt":   user.DeletedAt,
+		"deletedBy":   user.DeletedBy,
+		"lastLoginAt": user.LastLoginAt,
+		"createdAt":   user.CreatedAt,
+		"updatedAt":   user.UpdatedAt,
 	}
 }
 

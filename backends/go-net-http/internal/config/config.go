@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,8 @@ type Config struct {
 	AdminInitialName   string
 	AdminInitialEmail  string
 	AdminInitialPass   string
+	DemoSeedEnabled    bool
+	DemoSeedPassword   string
 }
 
 func Load() (Config, error) {
@@ -73,6 +76,15 @@ func Load() (Config, error) {
 		adminSeedEnabled = parsed
 	}
 
+	demoSeedEnabled := true
+	if raw := strings.TrimSpace(os.Getenv("DEMO_SEED_ENABLED")); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("parse DEMO_SEED_ENABLED: %w", err)
+		}
+		demoSeedEnabled = parsed
+	}
+
 	cfg := Config{
 		AppName:            getEnv("APP_NAME", "stacks-base"),
 		AppEnv:             getEnv("APP_ENV", "development"),
@@ -101,6 +113,8 @@ func Load() (Config, error) {
 		AdminInitialName:   getEnv("ADMIN_INITIAL_NAME", "Admin"),
 		AdminInitialEmail:  getEnv("ADMIN_INITIAL_EMAIL", "admin@stacks-base.local"),
 		AdminInitialPass:   getEnv("ADMIN_INITIAL_PASSWORD", "Admin@123456"),
+		DemoSeedEnabled:    demoSeedEnabled,
+		DemoSeedPassword:   getEnv("DEMO_SEED_PASSWORD", "Demo@123456"),
 	}
 
 	if cfg.AccessTokenSecret == "" || cfg.RefreshTokenSecret == "" {
@@ -157,6 +171,35 @@ func ApplyMigrationFile(ctx context.Context, db *sql.DB, relativePath string) er
 
 	if _, err := db.ExecContext(ctx, string(contents)); err != nil {
 		return fmt.Errorf("execute migration file: %w", err)
+	}
+
+	return nil
+}
+
+func ApplyMigrationDir(ctx context.Context, db *sql.DB, relativeDir string) error {
+	base, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get working directory: %w", err)
+	}
+
+	entries, err := os.ReadDir(filepath.Join(base, relativeDir))
+	if err != nil {
+		return fmt.Errorf("read migration directory: %w", err)
+	}
+
+	files := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
+			continue
+		}
+		files = append(files, entry.Name())
+	}
+	sort.Strings(files)
+
+	for _, name := range files {
+		if err := ApplyMigrationFile(ctx, db, filepath.Join(relativeDir, name)); err != nil {
+			return fmt.Errorf("apply migration %s: %w", name, err)
+		}
 	}
 
 	return nil

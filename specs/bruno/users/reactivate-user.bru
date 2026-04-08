@@ -1,0 +1,18 @@
+meta {
+  name: Reactivate User
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/users/{{createdUserId}}/reactivate
+}
+
+headers {
+  Authorization: Bearer {{adminAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.status: eq active
+}

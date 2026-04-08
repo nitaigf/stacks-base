@@ -10,6 +10,7 @@ type AuthPageProps = {
   mode: Mode;
   onModeChange: (mode: Mode) => void;
   onAuthenticated: () => void;
+  onForgotPassword: () => void;
   onFatalError: () => void;
 };
 
@@ -131,6 +132,13 @@ export function AuthPage(props: AuthPageProps) {
             {props.mode === 'login' ? 'Quero criar conta' : 'Ja tenho conta'}
           </button>
         </div>
+        <Show when={props.mode === 'login'}>
+          <div class="button-row button-row-compact">
+            <button class="button-link" type="button" onClick={props.onForgotPassword}>
+              Esqueci minha senha
+            </button>
+          </div>
+        </Show>
 
         <Show when={feedback()}>
           <p class={`feedback ${authStore.currentUser() ? 'feedback-success' : 'feedback-error'}`}>{feedback()}</p>

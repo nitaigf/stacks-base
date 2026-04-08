@@ -7,9 +7,9 @@ Stacks Base existe para fornecer implementacoes reais e equivalentes da mesma ap
 ## 2. Regras Inegociaveis
 
 1. Paridade funcional maxima entre stacks.
-2. Contrato de API unico definido em shared/openapi.yaml.
-3. Schema SQL canonico definido em shared/schema.sql.
-4. Design system compartilhado definido em shared/design-system/.
+2. Contrato de API unico definido em `specs/openapi.yaml`.
+3. Schema SQL canonico definido em `shared/schema.sql`.
+4. Design system compartilhado definido em `shared/design-system/`.
 5. Estrutura de pastas padronizada, com adaptacoes minimas exigidas pelo ecossistema.
 6. Qualquer divergencia intencional entre stacks exige ADR antes da implementacao.
 
@@ -26,7 +26,9 @@ Stacks Base existe para fornecer implementacoes reais e equivalentes da mesma ap
 ## 4. Qualidade Minima
 
 - Toda stack deve expor /health.
-- Toda stack deve cobrir, no minimo, registro, login, logout e users/me no corte vertical inicial.
+- Toda stack deve cobrir autenticacao completa: registro, login, logout, users/me, forgot-password, reset-password e change-password.
+- Toda stack deve cobrir gestao completa de usuarios: listar paginado, visualizar um, criar, editar, soft-delete, restore, inativar, reativar, hard-delete, exportar CSV, exportar XLSX e gerar PDF imprimivel.
+- Toda stack deve cobrir auditoria real persistida em banco para autenticacao, leitura, escrita, exportacao e impressao.
 - Testes, lint e formatacao nao sao opcionais.
 - Segredos nao podem ser versionados.
 - Operacoes de gravacao devem usar transacao quando envolverem mais de um efeito persistente ou quando a consistencia exigir rollback.
@@ -46,17 +48,18 @@ Essa ordem existe para impedir deriva de escopo, divergencia entre stacks e atra
 
 ## 6. Artefatos de Teste Obrigatorios
 
-- Collection Bruno em `shared/bruno/` validando todos os endpoints do contrato OpenAPI.
+- Collection Bruno em `specs/bruno/` validando todos os endpoints do contrato OpenAPI.
 - Diagramas de fluxo em `docs/flows/` descrevendo navegacao frontend e sequencias de API.
 - Testes unitarios de frontend e backend presentes e passando antes de promover qualquer fase.
 - Testes E2E de frontend via Playwright cobrindo o fluxo autenticado completo.
-- OpenAPI permanece hand-written em `shared/openapi.yaml`. Geradores stack-specific nao sao permitidos.
+- OpenAPI permanece hand-written em `specs/openapi.yaml`. Geradores stack-specific nao sao permitidos.
 
 ## 7. Rail Guards
 
 - Nao introduzir framework, biblioteca de UI, protocolo ou padrao arquitetural fora do README sem ADR.
-- Nao criar documentacao operacional fora da pasta docs/.
+- Nao criar documentacao operacional fora da pasta docs/, nem especificacoes executaveis fora de `specs/`.
 - Nao marcar fase como concluida no TODO sem validacao real do artefato correspondente.
+- Nao commitar mudanca que altere estado validado sem atualizar o TODO no mesmo conjunto de mudancas.
 - Nao tratar a baseline inicial como excecao: ela deve seguir as mesmas regras que serao exigidas das demais stacks.
 - Nao inverter a ordem de construcao definida nesta constituicao sem ADR.
 
