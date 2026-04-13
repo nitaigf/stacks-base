@@ -69,3 +69,11 @@ Essa ordem existe para impedir deriva de escopo, divergencia entre stacks e atra
 - Backend de referencia: Go com net/http.
 - Banco de dados principal para desenvolvimento: PostgreSQL local em localhost:5432.
 - Docker Compose e opcional para infraestrutura auxiliar e reproducao local.
+
+## 9. Filosofia dos Ecossistemas
+
+As escolhas tecnicas dentro deste monorepo obedecem as seguintes diretrizes absolutas de foco:
+
+1. **Baseline de Referencia (SolidJS e Go net/http + sqlc):** Foco exclusivo em performance *bare metal*, controle absoluto e minimo de abstracoes de terceiros. Estas ferramentas devem extrair o maximo da biblioteca padrao (std lib) e primitives de baixo nivel.
+2. **Demais Stacks (React, NestJS, etc.):** Foco maximo em produtividade guiada por bibliotecas estabelecidas e padroes idiomaticos de mercado. Deve-se aproveitar ao maximo o ferramental "pronto" que cada ecossistema oferece com o objetivo de compor arquiteturas rapidas e sem invencoes extraordinarias.
+3. **Design System:** Fica restrito a Vanilla CSS com uma organizacao puramente Atomica e alta aderencia a componentes ARIA e semantica nativa HTML. E terminantemente proibida a injecao de engrenagens utilitarias (TailwindCSS, UnoCSS) ou primitivas robustas externas (Radix, Shadcn, Fluent2 pre-fabricados, Bootstrap) no design system. O visual deve se manter minimalista, garantindo que nao roubara o foco arquitetural do projeto.

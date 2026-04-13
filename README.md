@@ -123,5 +123,23 @@ stacks-base/
 
 ## Proximas Stacks Planejadas
 
-- Frontends: React, Svelte, Vue, Angular
-- Backends: Node Fastify, Bun Elysia, Python FastAPI
+### Frontends
+- SolidJS (referência principal)
+- React Native
+- Angular
+- React
+- Qwik
+- Vue
+
+### Backends
+- Go Net/HTTP (referência principal) + sqlc
+- tRPC + Drizzle
+- NestJS + Fastify + Prisma
+- FastAPI + SQLModel
+- Elysia + Drizzle
+- AdonisJS + Lucid ORM
+
+### Fullstack Frameworks
+- SvelteKit (Svelte) + Drizzle
+- NextJS (React) + Prisma
+- NuxtJS (Vue) + TypeORM

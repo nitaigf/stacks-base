@@ -81,13 +81,28 @@ Este documento registra as tecnologias efetivamente adotadas na baseline atual e
 
 ### Frontends
 
-- React
-- Svelte
-- Vue
+- SolidJS (referência principal)
+- React Native
 - Angular
+- React
+- Qwik
+- Vue
 
 ### Backends
 
-- Node Fastify
-- Bun Elysia
-- Python FastAPI
+- Go Net/HTTP (referência principal) + sqlc
+- tRPC + Drizzle
+- NestJS + Fastify + Prisma
+- FastAPI + SQLModel
+- Elysia + Drizzle
+- AdonisJS + Lucid ORM
+
+### Fullstack Frameworks
+
+- SvelteKit (Svelte) + Drizzle
+- NextJS (React) + Prisma
+- NuxtJS (Vue) + TypeORM
+
+### Database Compartilhado
+
+- PostgreSQL

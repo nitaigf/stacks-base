@@ -9,15 +9,23 @@
 
 ## Planejado
 
-| Grupo | Stack | Status Previsto |
+| Categoria | Stack | Status Previsto |
 | --- | --- | --- |
-| Frontend | React | planned |
-| Frontend | Svelte | planned |
-| Frontend | Vue | planned |
+| Frontend | SolidJS (referencia principal) | validated-local |
+| Frontend | React Native | planned |
 | Frontend | Angular | planned |
-| Backend | Node Fastify | planned |
-| Backend | Bun Elysia | planned |
-| Backend | Python FastAPI | planned |
+| Frontend | React | planned |
+| Frontend | Qwik | planned |
+| Frontend | Vue | planned |
+| Backend | Go Net/HTTP (referencia principal) + sqlc | validated-local |
+| Backend | tRPC + Drizzle | planned |
+| Backend | NestJS + Fastify + Prisma | planned |
+| Backend | FastAPI + SQLModel | planned |
+| Backend | Elysia + Drizzle | planned |
+| Backend | AdonisJS + Lucid ORM | planned |
+| Fullstack | SvelteKit (Svelte) + Drizzle | planned |
+| Fullstack | NextJS (React) + Prisma | planned |
+| Fullstack | NuxtJS (Vue) + TypeORM | planned |
 
 ## Criterio de Promocao
 
