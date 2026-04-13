@@ -23,6 +23,11 @@
 
 Uma stack so deixa o estado bootstrap quando o corte vertical inicial estiver funcional, testado e alinhado a `specs/openapi.yaml`, `shared/schema.sql` e `shared/design-system/`.
 
+### 1. SolidJS + Go (net/http)
+- **Estado**: Consolidada (Gabarito Oficial)
+- **Diretorio**: `frontends/solidjs` e `backends/go-net-http`
+- **Observacao de Estado**: Cobertura E2E completa via Playwright, testes unitários de serviço no backend robustos, e segurança de tokens reforçada.
+
 ## Observacao de Estado
 
 `validated-local` significa que a stack passou por validacao local tecnica e de runtime, mas ainda pode depender de consolidacao de commit e ampliacao de cobertura antes de ser tratada como referencia estabilizada.

@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { loginSchema, registerSchema, type LoginInput, type RegisterInput } from '../schemas/auth';
 import { login, register } from '../services/auth';
+import { isApiClientError } from '../services/api';
 import { authStore } from '../stores/auth';
 import { FormField } from '../components/FormField';
 
@@ -49,7 +50,7 @@ export function AuthPage(props: AuthPageProps) {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Falha ao registrar usuario.';
         setFeedback(message);
-        if (message.toLowerCase().includes('internal')) {
+        if (isApiClientError(error) && error.isServerError) {
           props.onFatalError();
         }
       } finally {
@@ -75,7 +76,7 @@ export function AuthPage(props: AuthPageProps) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao autenticar.';
       setFeedback(message);
-      if (message.toLowerCase().includes('internal')) {
+      if (isApiClientError(error) && error.isServerError) {
         props.onFatalError();
       }
     } finally {
@@ -84,12 +85,14 @@ export function AuthPage(props: AuthPageProps) {
   };
 
   return (
-    <section class="surface-card">
-      <span class="metric-pill metric-pill-tag">Baseline inicial</span>
-      <h2 class="form-title">{props.mode === 'login' ? 'Entrar na referencia' : 'Criar conta de referencia'}</h2>
-      <p class="form-copy">
-        SolidJS consome o contrato comum do projeto e autentica contra o backend Go em PostgreSQL local.
-      </p>
+    <section class="surface-card form-card auth-card">
+      <div class="auth-card-copy">
+        <span class="metric-pill metric-pill-tag">Baseline inicial</span>
+        <h2 class="form-title">{props.mode === 'login' ? 'Entrar na referencia' : 'Criar conta de referencia'}</h2>
+        <p class="form-copy">
+          SolidJS consome o contrato comum do projeto e autentica contra o backend Go em PostgreSQL local.
+        </p>
+      </div>
 
       <form onSubmit={submit}>
         <Show when={props.mode === 'register'}>
@@ -144,6 +147,7 @@ export function AuthPage(props: AuthPageProps) {
           <p class={`feedback ${authStore.currentUser() ? 'feedback-success' : 'feedback-error'}`}>{feedback()}</p>
         </Show>
       </form>
+      <p class="auth-card-footer">Ao continuar, voce valida o fluxo real de autenticacao da baseline.</p>
     </section>
   );
 }

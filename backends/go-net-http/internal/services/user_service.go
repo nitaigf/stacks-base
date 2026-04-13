@@ -107,6 +107,9 @@ func (s *UserService) CreateUser(ctx context.Context, request RequestMetadata, i
 		Status:       input.Status,
 	})
 	if err != nil {
+		if repositories.IsUserEmailConflict(err) {
+			return repositories.User{}, NewAppError(http.StatusConflict, "email_taken", "email already exists", nil)
+		}
 		return repositories.User{}, InternalError("failed to create user", err)
 	}
 
@@ -155,6 +158,9 @@ func (s *UserService) UpdateUser(ctx context.Context, request RequestMetadata, i
 		Role:  input.Role,
 	})
 	if err != nil {
+		if repositories.IsUserEmailConflict(err) {
+			return repositories.User{}, NewAppError(http.StatusConflict, "email_taken", "email already exists", nil)
+		}
 		return repositories.User{}, InternalError("failed to update user", err)
 	}
 
@@ -237,6 +243,9 @@ func (s *UserService) RestoreUser(ctx context.Context, request RequestMetadata, 
 
 	user, err := s.repo.RestoreUser(ctx, id)
 	if err != nil {
+		if repositories.IsUserEmailConflict(err) {
+			return repositories.User{}, NewAppError(http.StatusConflict, "email_taken", "email already exists", nil)
+		}
 		if repositories.IsNotFound(err) {
 			return repositories.User{}, NewAppError(http.StatusNotFound, "user_not_found", "user was not found", err)
 		}

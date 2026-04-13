@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type User struct {
@@ -129,6 +131,7 @@ type Repository interface {
 	SavePasswordResetToken(ctx context.Context, userID string, tokenHash string, expiresAt time.Time) error
 	FindPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	UsePasswordResetToken(ctx context.Context, tokenHash string) error
+	RevokeActivePasswordResetTokens(ctx context.Context, userID string) error
 	CreateAuditLog(ctx context.Context, input AuditLogInput) error
 	ListAuditLogs(ctx context.Context, params AuditLogListParams) ([]AuditLog, PaginationMeta, error)
 	RunInTx(ctx context.Context, fn func(Repository) error) error
@@ -139,6 +142,8 @@ type PostgresRepository struct {
 	tx *sql.Tx
 }
 
+var ErrUserEmailConflict = errors.New("user email conflict")
+
 func NewPostgresRepository(db *sql.DB) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
@@ -148,6 +153,13 @@ func (r *PostgresRepository) RunInTx(ctx context.Context, fn func(Repository) er
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = transaction.Rollback()
+			panic(p) // re-panic after safe rollback
+		}
+	}()
 
 	txRepo := &PostgresRepository{db: r.db, tx: transaction}
 	if err := fn(txRepo); err != nil {
@@ -176,7 +188,7 @@ func (r *PostgresRepository) CreateUser(ctx context.Context, params CreateUserPa
 		r.queryRowContext(ctx, query, params.Name, strings.ToLower(strings.TrimSpace(params.Email)), params.PasswordHash, params.Role, params.Status),
 		&user,
 	); err != nil {
-		return User{}, fmt.Errorf("create user: %w", err)
+		return User{}, wrapUserMutationError("create user", err)
 	}
 
 	return user, nil
@@ -195,7 +207,7 @@ func (r *PostgresRepository) UpdateUser(ctx context.Context, id string, params U
 		r.queryRowContext(ctx, query, id, strings.TrimSpace(params.Name), strings.ToLower(strings.TrimSpace(params.Email)), params.Role),
 		&user,
 	); err != nil {
-		return User{}, fmt.Errorf("update user: %w", err)
+		return User{}, wrapUserMutationError("update user", err)
 	}
 
 	return user, nil
@@ -243,7 +255,7 @@ func (r *PostgresRepository) RestoreUser(ctx context.Context, id string) (User, 
 
 	var user User
 	if err := scanUser(r.queryRowContext(ctx, query, id), &user); err != nil {
-		return User{}, fmt.Errorf("restore user: %w", err)
+		return User{}, wrapUserMutationError("restore user", err)
 	}
 
 	return user, nil
@@ -564,6 +576,18 @@ func (r *PostgresRepository) CreateAuditLog(ctx context.Context, input AuditLogI
 	return nil
 }
 
+func (r *PostgresRepository) RevokeActivePasswordResetTokens(ctx context.Context, userID string) error {
+	_, err := r.execContext(ctx, `
+		update password_reset_tokens
+		set used_at = now()
+		where user_id = $1 and used_at is null and expires_at > now()
+	`, userID)
+	if err != nil {
+		return fmt.Errorf("revoke active password reset tokens: %w", err)
+	}
+	return nil
+}
+
 func (r *PostgresRepository) ListAuditLogs(ctx context.Context, params AuditLogListParams) ([]AuditLog, PaginationMeta, error) {
 	conditions := []string{"1 = 1"}
 	args := make([]any, 0, 8)
@@ -631,6 +655,37 @@ func (r *PostgresRepository) ListAuditLogs(ctx context.Context, params AuditLogL
 
 func IsNotFound(err error) bool {
 	return errors.Is(err, sql.ErrNoRows)
+}
+
+func IsUserEmailConflict(err error) bool {
+	if errors.Is(err, ErrUserEmailConflict) {
+		return true
+	}
+
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+
+	if pqErr.Code != "23505" {
+		return false
+	}
+
+	constraint := strings.ToLower(strings.TrimSpace(pqErr.Constraint))
+	if constraint == "idx_users_email_unique" || constraint == "users_email_key" {
+		return true
+	}
+
+	detail := strings.ToLower(strings.TrimSpace(pqErr.Message + " " + pqErr.Detail))
+	return strings.Contains(detail, "email")
+}
+
+func wrapUserMutationError(operation string, err error) error {
+	if IsUserEmailConflict(err) {
+		return fmt.Errorf("%s: %w", operation, errors.Join(ErrUserEmailConflict, err))
+	}
+
+	return fmt.Errorf("%s: %w", operation, err)
 }
 
 func scanUser(scanner interface{ Scan(dest ...any) error }, user *User) error {

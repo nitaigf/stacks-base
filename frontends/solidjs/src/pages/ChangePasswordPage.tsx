@@ -1,6 +1,8 @@
-import { createSignal } from 'solid-js';
-import { changePassword } from '../services/auth';
+import { createSignal, type Setter } from 'solid-js';
+import { changePassword, logout } from '../services/auth';
+import { isApiClientError } from '../services/api';
 import { FormField } from '../components/FormField';
+import { changePasswordSchema } from '../schemas/auth';
 
 type ChangePasswordPageProps = {
   onCompleted: () => void;
@@ -11,22 +13,46 @@ type ChangePasswordPageProps = {
 export function ChangePasswordPage(props: ChangePasswordPageProps) {
   const [currentPassword, setCurrentPassword] = createSignal('');
   const [newPassword, setNewPassword] = createSignal('');
+  const [confirmPassword, setConfirmPassword] = createSignal('');
+  const [errors, setErrors] = createSignal<Record<string, string[] | undefined>>({});
   const [feedback, setFeedback] = createSignal<string | null>(null);
+  const [feedbackTone, setFeedbackTone] = createSignal<'success' | 'error' | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
-    setSubmitting(true);
     setFeedback(null);
+    setFeedbackTone(null);
+
+    const result = changePasswordSchema.safeParse({
+      currentPassword: currentPassword(),
+      newPassword: newPassword(),
+      confirmPassword: confirmPassword(),
+    });
+
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors);
+      return;
+    }
+
+    setErrors({});
+    setSubmitting(true);
 
     try {
-      const response = await changePassword(currentPassword(), newPassword());
+      const response = await changePassword(result.data.currentPassword, result.data.newPassword);
       setFeedback(response.data.message);
+      setFeedbackTone('success');
+      try {
+        await logout();
+      } catch {
+        // Password change already revokes refresh tokens server-side.
+      }
       props.onCompleted();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao alterar senha.';
       setFeedback(message);
-      if (message.toLowerCase().includes('internal')) {
+      setFeedbackTone('error');
+      if (isApiClientError(error) && error.isServerError) {
         props.onFatalError();
       }
     } finally {
@@ -35,25 +61,44 @@ export function ChangePasswordPage(props: ChangePasswordPageProps) {
   };
 
   return (
-    <section class="surface-card">
+    <section class="surface-card form-card">
       <span class="metric-pill metric-pill-tag">Seguranca da conta</span>
       <h2 class="form-title">Alterar senha</h2>
       <p class="form-copy">Apos a troca, a sessao atual e encerrada e um novo login sera necessario.</p>
 
-      <form onSubmit={submit}>
+      <form noValidate onSubmit={submit}>
         <FormField
           label="Senha atual"
           name="currentPassword"
           type="password"
           value={currentPassword()}
-          onInput={(event) => setCurrentPassword(event.currentTarget.value)}
+          error={errors().currentPassword?.[0]}
+          onInput={(event) => {
+            setCurrentPassword(event.currentTarget.value);
+            clearFieldError(setErrors, 'currentPassword');
+          }}
         />
         <FormField
           label="Nova senha"
           name="newPassword"
           type="password"
           value={newPassword()}
-          onInput={(event) => setNewPassword(event.currentTarget.value)}
+          error={errors().newPassword?.[0]}
+          onInput={(event) => {
+            setNewPassword(event.currentTarget.value);
+            clearFieldError(setErrors, 'newPassword');
+          }}
+        />
+        <FormField
+          label="Confirmar nova senha"
+          name="confirmPassword"
+          type="password"
+          value={confirmPassword()}
+          error={errors().confirmPassword?.[0]}
+          onInput={(event) => {
+            setConfirmPassword(event.currentTarget.value);
+            clearFieldError(setErrors, 'confirmPassword');
+          }}
         />
 
         <div class="button-row">
@@ -65,8 +110,23 @@ export function ChangePasswordPage(props: ChangePasswordPageProps) {
           </button>
         </div>
 
-        {feedback() ? <p class="feedback feedback-success">{feedback()}</p> : null}
+        {feedback() ? <p class={`feedback ${feedbackTone() === 'success' ? 'feedback-success' : 'feedback-error'}`}>{feedback()}</p> : null}
       </form>
     </section>
   );
+}
+
+function clearFieldError(
+  setErrors: Setter<Record<string, string[] | undefined>>,
+  fieldName: string,
+) {
+  setErrors((current) => {
+    if (!current[fieldName]) {
+      return current;
+    }
+
+    const next = { ...current };
+    delete next[fieldName];
+    return next;
+  });
 }

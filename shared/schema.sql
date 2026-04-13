@@ -44,6 +44,7 @@ create table if not exists refresh_tokens (
 
 create index if not exists idx_refresh_tokens_user_id on refresh_tokens(user_id);
 create index if not exists idx_refresh_tokens_expires_at on refresh_tokens(expires_at);
+create index if not exists idx_refresh_tokens_token_hash on refresh_tokens(token_hash);
 
 create table if not exists password_reset_tokens (
   id uuid primary key default gen_random_uuid(),

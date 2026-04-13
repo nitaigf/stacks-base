@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"encoding/xml"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 func BuildUsersCSV(users []repositories.User) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	writer := csv.NewWriter(buffer)
+	writer.Comma = ';'
 	rows := buildUserRows(users)
 	if err := writer.WriteAll(rows); err != nil {
 		return nil, fmt.Errorf("write csv: %w", err)
@@ -57,63 +57,77 @@ func BuildUsersXLSX(users []repositories.User) ([]byte, error) {
 
 func BuildUsersPDF(users []repositories.User) ([]byte, error) {
 	const (
-		pageWidth     = 612
-		pageHeight    = 792
-		leftMargin    = 40
-		topMargin     = 760
-		lineHeight    = 14
-		rowsPerPage   = 42
-		bodyFontSize  = 9
-		titleFontSize = 16
+		pageWidth      = 612
+		pageHeight     = 792
+		leftMargin     = 36
+		topMargin      = 756
+		tableTop       = 692
+		rowHeight      = 22
+		headerFontSize = 8
+		bodyFontSize   = 8
+		titleFontSize  = 16
+		metaFontSize   = 10
 	)
 
-	lines := []string{
-		"Relatorio de usuarios",
-		"Gerado em: " + time.Now().Format("2006-01-02 15:04:05"),
-		"Total de registros: " + strconv.Itoa(len(users)),
-		"",
-		"Nome | Email | Papel | Status | Excluido | Ultimo login",
-		strings.Repeat("-", 110),
+	columns := []pdfTableColumn{
+		{Title: "Nome", Width: 98},
+		{Title: "Email", Width: 160},
+		{Title: "Papel", Width: 52},
+		{Title: "Status", Width: 52},
+		{Title: "Excluido", Width: 78},
+		{Title: "Ultimo login", Width: 100},
 	}
 
+	rows := make([][]string, 0, len(users))
 	for _, user := range users {
-		lines = append(lines, truncatePDFLine(fmt.Sprintf(
-			"%s | %s | %s | %s | %s | %s",
+		rows = append(rows, []string{
 			user.Name,
 			user.Email,
 			user.Role,
 			user.Status,
-			formatNullableTime(user.DeletedAt),
-			formatNullableTime(user.LastLoginAt),
-		), 120))
+			formatNullableReportTime(user.DeletedAt),
+			formatNullableReportTime(user.LastLoginAt),
+		})
 	}
 
-	if len(lines) == 0 {
-		lines = append(lines, "Nenhum usuario encontrado.")
+	rowsPerPage := 24
+	if len(rows) == 0 {
+		rowsPerPage = 1
 	}
 
-	pageStreams := make([]string, 0, (len(lines)/rowsPerPage)+1)
-	for start := 0; start < len(lines); start += rowsPerPage {
+	pageCount := 1
+	if len(rows) > 0 {
+		pageCount = (len(rows) + rowsPerPage - 1) / rowsPerPage
+	}
+
+	pageStreams := make([]string, 0, pageCount)
+	for start := 0; start < len(rows) || (len(rows) == 0 && start == 0); start += rowsPerPage {
 		end := start + rowsPerPage
-		if end > len(lines) {
-			end = len(lines)
+		if end > len(rows) {
+			end = len(rows)
 		}
 
-		var stream strings.Builder
-		stream.WriteString("BT\n")
-		stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", titleFontSize))
-		stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", leftMargin, topMargin))
-		stream.WriteString(fmt.Sprintf("(%s) Tj\n", escapePDFText(lines[start])))
-		stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", bodyFontSize))
-
-		y := topMargin - (lineHeight * 2)
-		for _, line := range lines[start+1 : end] {
-			stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", leftMargin, y))
-			stream.WriteString(fmt.Sprintf("(%s) Tj\n", escapePDFText(line)))
-			y -= lineHeight
+		pageRows := rows[start:end]
+		pageStreams = append(pageStreams, buildUsersPDFPage(
+			columns,
+			pageRows,
+			pdfPageMetadata{
+				LeftMargin:     leftMargin,
+				TopMargin:      topMargin,
+				TableTop:       tableTop,
+				RowHeight:      rowHeight,
+				HeaderFontSize: headerFontSize,
+				BodyFontSize:   bodyFontSize,
+				TitleFontSize:  titleFontSize,
+				MetaFontSize:   metaFontSize,
+				GeneratedAt:    time.Now(),
+				TotalRows:      len(users),
+				PageLabel:      fmt.Sprintf("Pagina %d de %d", (start/rowsPerPage)+1, pageCount),
+			},
+		))
+		if len(rows) == 0 {
+			break
 		}
-		stream.WriteString("ET\n")
-		pageStreams = append(pageStreams, stream.String())
 	}
 
 	objects := []string{
@@ -242,6 +256,140 @@ func truncatePDFLine(value string, max int) string {
 		return value[:max]
 	}
 	return value[:max-3] + "..."
+}
+
+type pdfTableColumn struct {
+	Title string
+	Width int
+}
+
+type pdfPageMetadata struct {
+	LeftMargin     int
+	TopMargin      int
+	TableTop       int
+	RowHeight      int
+	HeaderFontSize int
+	BodyFontSize   int
+	TitleFontSize  int
+	MetaFontSize   int
+	GeneratedAt    time.Time
+	TotalRows      int
+	PageLabel      string
+}
+
+func buildUsersPDFPage(columns []pdfTableColumn, rows [][]string, meta pdfPageMetadata) string {
+	var stream strings.Builder
+
+	stream.WriteString("0.95 0.96 0.98 rg\n")
+	stream.WriteString("0.80 0.84 0.90 RG\n")
+	stream.WriteString(fmt.Sprintf("%d %d %d %d re B\n", meta.LeftMargin, meta.TableTop, totalPDFTableWidth(columns), meta.RowHeight))
+	stream.WriteString("0.35 0.40 0.48 RG\n")
+
+	stream.WriteString("BT\n")
+	stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", meta.TitleFontSize))
+	stream.WriteString("0.06 0.09 0.16 rg\n")
+	stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", meta.LeftMargin, meta.TopMargin))
+	stream.WriteString("(Relatorio de usuarios) Tj\n")
+
+	stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", meta.MetaFontSize))
+	stream.WriteString("0.30 0.36 0.45 rg\n")
+	stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", meta.LeftMargin, meta.TopMargin-18))
+	stream.WriteString(fmt.Sprintf("(Gerado em: %s) Tj\n", escapePDFText(meta.GeneratedAt.Format("2006-01-02 15:04:05"))))
+	stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", meta.LeftMargin, meta.TopMargin-34))
+	stream.WriteString(fmt.Sprintf("(Total de registros: %d) Tj\n", meta.TotalRows))
+	stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", meta.LeftMargin+410, meta.TopMargin-34))
+	stream.WriteString(fmt.Sprintf("(%s) Tj\n", escapePDFText(meta.PageLabel)))
+	stream.WriteString("ET\n")
+
+	writePDFTableHeader(&stream, columns, meta)
+
+	if len(rows) == 0 {
+		writePDFEmptyState(&stream, columns, meta)
+		return stream.String()
+	}
+
+	y := meta.TableTop - meta.RowHeight
+	for _, row := range rows {
+		writePDFTableRow(&stream, columns, row, y, meta)
+		y -= meta.RowHeight
+	}
+
+	return stream.String()
+}
+
+func writePDFTableHeader(stream *strings.Builder, columns []pdfTableColumn, meta pdfPageMetadata) {
+	x := meta.LeftMargin
+	stream.WriteString("BT\n")
+	stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", meta.HeaderFontSize))
+	stream.WriteString("0.18 0.23 0.30 rg\n")
+
+	for _, column := range columns {
+		stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", x+6, meta.TableTop+7))
+		stream.WriteString(fmt.Sprintf("(%s) Tj\n", escapePDFText(column.Title)))
+		x += column.Width
+	}
+
+	stream.WriteString("ET\n")
+}
+
+func writePDFTableRow(stream *strings.Builder, columns []pdfTableColumn, row []string, y int, meta pdfPageMetadata) {
+	x := meta.LeftMargin
+	stream.WriteString("0.88 0.90 0.94 RG\n")
+	for _, column := range columns {
+		stream.WriteString(fmt.Sprintf("%d %d %d %d re S\n", x, y, column.Width, meta.RowHeight))
+		x += column.Width
+	}
+
+	x = meta.LeftMargin
+	stream.WriteString("BT\n")
+	stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", meta.BodyFontSize))
+	stream.WriteString("0.06 0.09 0.16 rg\n")
+
+	for index, column := range columns {
+		value := ""
+		if index < len(row) {
+			value = truncatePDFCell(row[index], column.Width, meta.BodyFontSize)
+		}
+		stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", x+6, y+8))
+		stream.WriteString(fmt.Sprintf("(%s) Tj\n", escapePDFText(value)))
+		x += column.Width
+	}
+
+	stream.WriteString("ET\n")
+}
+
+func writePDFEmptyState(stream *strings.Builder, columns []pdfTableColumn, meta pdfPageMetadata) {
+	stream.WriteString("0.88 0.90 0.94 RG\n")
+	stream.WriteString(fmt.Sprintf("%d %d %d %d re S\n", meta.LeftMargin, meta.TableTop-meta.RowHeight, totalPDFTableWidth(columns), meta.RowHeight))
+	stream.WriteString("BT\n")
+	stream.WriteString(fmt.Sprintf("/F1 %d Tf\n", meta.BodyFontSize))
+	stream.WriteString("0.30 0.36 0.45 rg\n")
+	stream.WriteString(fmt.Sprintf("1 0 0 1 %d %d Tm\n", meta.LeftMargin+6, meta.TableTop-meta.RowHeight+8))
+	stream.WriteString("(Nenhum usuario encontrado.) Tj\n")
+	stream.WriteString("ET\n")
+}
+
+func totalPDFTableWidth(columns []pdfTableColumn) int {
+	total := 0
+	for _, column := range columns {
+		total += column.Width
+	}
+	return total
+}
+
+func truncatePDFCell(value string, width int, fontSize int) string {
+	maxChars := width / max(4, (fontSize/2)+1)
+	if maxChars < 6 {
+		maxChars = 6
+	}
+	return truncatePDFLine(value, maxChars)
+}
+
+func formatNullableReportTime(value *time.Time) string {
+	if value == nil {
+		return "-"
+	}
+	return value.Format("2006-01-02 15:04")
 }
 
 const contentTypesXML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

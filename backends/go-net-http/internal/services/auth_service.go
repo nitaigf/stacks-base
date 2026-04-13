@@ -222,6 +222,10 @@ func (s *AuthService) ForgotPassword(ctx context.Context, request RequestMetadat
 	tokenHash := HashToken(rawToken)
 	expiresAt := time.Now().Add(30 * time.Minute)
 
+	if err := s.repo.RevokeActivePasswordResetTokens(ctx, user.ID); err != nil {
+		return InternalError("failed to revoke existing password reset tokens", err)
+	}
+
 	if err := s.repo.SavePasswordResetToken(ctx, user.ID, tokenHash, expiresAt); err != nil {
 		return InternalError("failed to persist password reset token", err)
 	}

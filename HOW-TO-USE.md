@@ -17,6 +17,7 @@ Este guia explica como configurar e rodar a stack Stacks Base localmente para de
 - **VS Code** com extensoes para Go e TypeScript
 - **Postico** ou **pgAdmin**
 - **Bruno**
+- **Playwright**
 - **Docker Compose** como alternativa opcional para infraestrutura
 
 ## Passo 1: Clonar e Configurar o Projeto
@@ -89,8 +90,12 @@ O frontend fica em `http://127.0.0.1:3000`.
 ### Areas Principais
 
 1. Pagina publica: `http://127.0.0.1:3000/`
-2. Login: `http://127.0.0.1:3000/login`
-3. Registro: `http://127.0.0.1:3000/register`
+2. Login: `http://127.0.0.1:3000/auth/login`
+3. Registro: `http://127.0.0.1:3000/auth/register`
+4. Recuperacao de senha: `http://127.0.0.1:3000/auth/forgot-password`
+5. Dashboard autenticado: `http://127.0.0.1:3000/app`
+6. Usuarios admin: `http://127.0.0.1:3000/admin/users`
+7. Auditoria admin: `http://127.0.0.1:3000/admin/audit-logs`
 
 ### Fluxo Recomendo de Validacao Manual
 
@@ -122,6 +127,32 @@ cd frontends/solidjs
 npm test
 npm run build
 ```
+
+### Frontend E2E
+
+Com backend, banco e frontend local disponiveis:
+
+```bash
+cd frontends/solidjs
+npm run test:e2e
+```
+
+A suite agora cobre fluxos completos de registro, login, esqueci senha, gestao de usuarios, auditoria e paginas de erro.
+
+Se quiser sobrescrever credenciais admin da seed:
+
+```bash
+cd frontends/solidjs
+PW_ADMIN_EMAIL=admin@stacks-base.local PW_ADMIN_PASSWORD='Admin@123456' npm run test:e2e
+```
+
+### Novas Migrations
+
+Sempre que houver mudancas estruturais no backend Go, aplique as migrations:
+
+- `001_initial_schema.up.sql`: Schema basico.
+- `002_user_seeds.up.sql`: Dados iniciais (opcional).
+- `003_token_indexes.up.sql`: Indices de performance para tokens e auditoria.
 
 ### Backend
 
@@ -182,6 +213,7 @@ go run ./cmd/server
 cd frontends/solidjs
 npm run build
 npm run preview
+npm run test:e2e
 ```
 
 ## Troubleshooting
@@ -197,6 +229,7 @@ npm run preview
 - Verifique `VITE_API_BASE_URL`
 - Verifique CORS no backend com `BACKEND_ALLOWED_ORIGIN`
 - Verifique o health check em `http://127.0.0.1:8080/health`
+- Verifique se a sessao seed/admin esperada pelo Playwright corresponde ao `.env`
 
 ### PostgreSQL nao conecta
 

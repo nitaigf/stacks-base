@@ -1,0 +1,29 @@
+meta {
+  name: Create User Invalid Payload
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/users
+  body: json
+}
+
+headers {
+  Authorization: Bearer {{adminAccessToken}}
+}
+
+body:json {
+  {
+    "name": "A",
+    "email": "invalid-email",
+    "password": "short",
+    "role": "invalid-role",
+    "status": "invalid-status"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error.code: eq validation_error
+}

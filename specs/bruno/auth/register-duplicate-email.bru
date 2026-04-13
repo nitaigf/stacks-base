@@ -1,0 +1,23 @@
+meta {
+  name: Register Duplicate Email
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+}
+
+body:json {
+  {
+    "name": "Duplicate User",
+    "email": "{{registeredEmail}}",
+    "password": "{{testPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.error.code: eq email_taken
+}

@@ -5,5 +5,9 @@ type ErrorLayoutProps = {
 };
 
 export function ErrorLayout(props: ErrorLayoutProps) {
-  return <>{props.children}</>;
+  return (
+    <div class="error-shell">
+      <div class="error-shell-content">{props.children}</div>
+    </div>
+  );
 }

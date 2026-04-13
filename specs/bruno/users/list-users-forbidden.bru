@@ -1,0 +1,18 @@
+meta {
+  name: List Users Forbidden
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}

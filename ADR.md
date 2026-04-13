@@ -126,3 +126,45 @@ A baseline passou a incluir escopo administrativo real, auditoria real, exportac
 - A raiz do repositorio passa a separar claramente runtime compartilhado de especificacoes executaveis.
 - A baseline deixa de depender de interpretacao sobre caminhos antigos como `shared/openapi.yaml` e `shared/bruno/`.
 - O frontend passa a ter reproducao univoca de dependencias enquanto Bun permanece como candidato de stack futura, nao como package manager normativo desta baseline.
+
+## ADR-007 - Persistencia Local da Sessao do Frontend SolidJS
+
+- Data: 2026-04-08
+- Status: accepted
+
+### Contexto
+
+As rotas protegidas do frontend SolidJS dependiam apenas de estado em memoria. Em refresh de pagina ou acesso direto a URLs administrativas como `/admin/users/:id`, o guard do frontend perdia a sessao antes de a tela conseguir carregar os dados.
+
+### Decisao
+
+- O frontend SolidJS passa a persistir `accessToken` e `currentUser` em `localStorage`.
+- A reidratacao da sessao acontece na inicializacao do store de autenticacao, antes da avaliacao dos guards de rota.
+- Telas de detalhe administrativo nao devem renderizar formulario vazio quando a leitura inicial falhar.
+
+### Consequencias
+
+- Links protegidos passam a sobreviver a refresh e acesso direto enquanto o token persistido continuar valido.
+- O backend permanece sem dependencia adicional de refresh automatico para este comportamento inicial.
+- Novas stacks frontend devem tratar persistencia e reidratacao de sessao como requisito de paridade da baseline.
+
+## ADR-008 - Shell Visual de Dashboard para Areas Autenticadas
+
+- Data: 2026-04-08
+- Status: accepted
+
+### Contexto
+
+Com o crescimento do escopo autenticado e administrativo, a interface continuava com cara de landing page adaptada. Isso reduzia a sensacao de produto e distanciava a baseline de referencias modernas de dashboard usadas na comunidade.
+
+### Decisao
+
+- O frontend SolidJS passa a usar um app shell dedicado para areas privadas e administrativas, com sidebar, topbar e superficie de conteudo persistente.
+- O design system compartilhado adota uma direcao mais neutra, densa e orientada a dashboard para cards, filtros, tabelas e formularios.
+- Paginas publicas e de autenticacao passam a conversar visualmente com esse shell, sem perder a separacao de contexto.
+
+### Consequencias
+
+- A baseline fica mais proxima do idioma visual esperado de sistemas internos e paineis operacionais.
+- Novas stacks frontend devem buscar paridade nao apenas funcional, mas tambem na hierarquia visual entre area publica, autenticada e administrativa.
+- Mudancas futuras de layout devem preservar a clareza operacional do shell e evitar retorno ao padrao de pagina isolada sem navegacao persistente.

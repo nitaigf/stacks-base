@@ -49,12 +49,13 @@ O sistema atual cobre o escopo prometido para a baseline:
 
 ## Validacao Tecnica Atual
 
-Nesta baseline, a validacao local ja comprovada inclui:
+- **Estado**: `validated-local` (Consolidação concluída)
+- **Cobertura**: Auth completo, CRUD Usuarios, Auditoria real, E2E Playwright exaustivo.
+- **Backend**: Go (net/http) + PostgreSQL.
+- **Frontend**: SolidJS + TanStack Router (Atomic Design).
+- **Specs**: OpenAPI Hand-written + Collection Bruno (Happy & Negative paths).
 
-- `go test ./...` no backend Go
-- `npm test` no frontend SolidJS
-- `npm run build` no frontend SolidJS
-- chamadas HTTP reais contra PostgreSQL local validando:
+Controle via chamadas HTTP reais contra PostgreSQL local validando:
   - login admin
   - CRUD administrativo de usuarios
   - soft-delete e restore
@@ -116,12 +117,9 @@ stacks-base/
 
 ## Roadmap Imediato
 
-Antes de abrir outra stack, o foco continua sendo consolidar esta baseline como referencia oficial:
-
-1. manter documentacao e `TODO` sincronizados a cada entrega validada
-2. ampliar a suite Bruno para cobrir o escopo administrativo completo
-3. ampliar a cobertura E2E de frontend sobre o escopo novo
-4. somente depois iniciar a proxima stack
+1. [x] **Consolidação da Baseline**: Fechar débitos de segurança e ampliar E2E (Playwright).
+2. [ ] **Multi-Stack**: Iniciar a próxima stack (proposta: React + Fastify) mantendo paridade rigorosa.
+3. [ ] **CI/CD**: Automação total de testes via GitHub Actions.
 
 ## Proximas Stacks Planejadas
 

@@ -2,13 +2,13 @@ import type { User } from '../types/auth';
 
 interface UserTableProps {
   users: User[];
-  onStatusChange: (userId: string, status: 'active' | 'blocked') => void;
+  onStatusChange: (userId: string, status: 'active' | 'inactive') => void;
   onRoleChange: (userId: string, role: 'admin' | 'member') => void;
 }
 
 export function UserTable(props: UserTableProps) {
-  const handleStatusToggle = (userId: string, currentStatus: 'active' | 'blocked') => {
-    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
+  const handleStatusToggle = (userId: string, currentStatus: 'active' | 'inactive') => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     props.onStatusChange(userId, newStatus);
   };
 
@@ -38,7 +38,7 @@ export function UserTable(props: UserTableProps) {
                   <button
                     class="button button-sm button-secondary"
                     onClick={() => handleStatusToggle(user.id, user.status)}
-                    title={user.status === 'active' ? 'Bloquear usuário' : 'Ativar usuário'}
+                    title={user.status === 'active' ? 'Inativar usuario' : 'Ativar usuario'}
                   >
                     {user.status === 'active' ? '🔒' : '✓'}
                   </button>
@@ -60,7 +60,7 @@ export function UserTable(props: UserTableProps) {
               </td>
               <td>
                 <span class={`badge ${user.status === 'active' ? 'badge-success' : 'badge-destructive'}`}>
-                  {user.status === 'active' ? 'Ativo' : 'Bloqueado'}
+                  {user.status === 'active' ? 'Ativo' : 'Inativo'}
                 </span>
               </td>
               <td>{new Date(user.createdAt).toLocaleDateString('pt-BR')}</td>

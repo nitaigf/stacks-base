@@ -26,7 +26,8 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { ErrorLayout } from './layouts/ErrorLayout';
 import { authStore } from './stores/auth';
 import { canAccessAdmin, canAccessPrivate, isAuthenticated } from './utils/access';
-import { logout } from './services/auth';
+import { logout, me } from './services/auth';
+import { isApiClientError } from './services/api';
 
 const rootRoute = createRootRoute({
   component: App,
@@ -66,22 +67,14 @@ const resetPasswordRoute = createRoute({
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  beforeLoad: () => {
-    if (!canAccessPrivate(authStore.currentUser())) {
-      throw redirect({ to: '/auth/login' });
-    }
-  },
+  beforeLoad: privateGuard,
   component: DashboardScene,
 });
 
 const changePasswordRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/change-password',
-  beforeLoad: () => {
-    if (!canAccessPrivate(authStore.currentUser())) {
-      throw redirect({ to: '/auth/login' });
-    }
-  },
+  beforeLoad: privateGuard,
   component: ChangePasswordScene,
 });
 
@@ -158,11 +151,43 @@ export function AppRouter() {
   return <RouterProvider router={router} />;
 }
 
-function adminGuard() {
-  const user = authStore.currentUser();
-  if (!isAuthenticated(user)) {
+async function privateGuard() {
+  if (!canAccessPrivate(authStore.currentUser()) || !authStore.accessToken()) {
+    authStore.clearSession();
     throw redirect({ to: '/auth/login' });
   }
+
+  try {
+    const user = await authStore.revalidateSession(async () => {
+      const response = await me();
+      return response.data;
+    });
+
+    if (!isAuthenticated(user) || !canAccessPrivate(user)) {
+      authStore.clearSession();
+      throw redirect({ to: '/auth/login' });
+    }
+
+    return user;
+  } catch (error) {
+    if (isApiClientError(error)) {
+      if (error.isUnauthorized) {
+        throw redirect({ to: '/auth/login' });
+      }
+      if (error.isForbidden) {
+        throw redirect({ to: '/errors/403' });
+      }
+      if (error.isServerError) {
+        throw redirect({ to: '/errors/500' });
+      }
+    }
+
+    throw error;
+  }
+}
+
+async function adminGuard() {
+  const user = await privateGuard();
   if (!canAccessAdmin(user)) {
     throw redirect({ to: '/errors/403' });
   }
@@ -235,6 +260,8 @@ function DashboardScene() {
   return (
     <PrivateLayout
       user={currentUser()}
+      section="dashboard"
+      onDashboard={() => navigate({ to: '/app' })}
       onLogout={async () => {
         try {
           await logout();
@@ -245,7 +272,6 @@ function DashboardScene() {
       }}
       onAdmin={() => navigate({ to: '/admin/users' })}
       onChangePassword={() => navigate({ to: '/app/change-password' })}
-      onFatalError={() => navigate({ to: '/errors/500' })}
     >
       <DashboardPage onFatalError={() => navigate({ to: '/errors/500' })} />
     </PrivateLayout>
@@ -258,13 +284,14 @@ function ChangePasswordScene() {
   return (
     <PrivateLayout
       user={currentUser()}
+      section="security"
+      onDashboard={() => navigate({ to: '/app' })}
       onLogout={async () => {
         authStore.clearSession();
         navigate({ to: '/auth/login' });
       }}
       onAdmin={() => navigate({ to: '/admin/users' })}
       onChangePassword={() => navigate({ to: '/app/change-password' })}
-      onFatalError={() => navigate({ to: '/errors/500' })}
     >
       <ChangePasswordPage
         onCompleted={() => {
@@ -280,8 +307,11 @@ function ChangePasswordScene() {
 
 function AdminUsersScene() {
   const navigate = useNavigate();
+  const currentUser = () => authStore.currentUser();
   return (
     <AdminLayout
+      user={currentUser()}
+      section="users"
       onBackToApp={() => navigate({ to: '/app' })}
       onUsers={() => navigate({ to: '/admin/users' })}
       onAuditLogs={() => navigate({ to: '/admin/audit-logs' })}
@@ -297,8 +327,11 @@ function AdminUsersScene() {
 
 function AdminNewUserScene() {
   const navigate = useNavigate();
+  const currentUser = () => authStore.currentUser();
   return (
     <AdminLayout
+      user={currentUser()}
+      section="users"
       onBackToApp={() => navigate({ to: '/app' })}
       onUsers={() => navigate({ to: '/admin/users' })}
       onAuditLogs={() => navigate({ to: '/admin/audit-logs' })}
@@ -315,9 +348,12 @@ function AdminNewUserScene() {
 
 function AdminEditUserScene() {
   const navigate = useNavigate();
+  const currentUser = () => authStore.currentUser();
   const params = useParams({ from: '/admin/users/$userId' }) as { userId: string };
   return (
     <AdminLayout
+      user={currentUser()}
+      section="users"
       onBackToApp={() => navigate({ to: '/app' })}
       onUsers={() => navigate({ to: '/admin/users' })}
       onAuditLogs={() => navigate({ to: '/admin/audit-logs' })}
@@ -335,8 +371,11 @@ function AdminEditUserScene() {
 
 function AdminAuditLogsScene() {
   const navigate = useNavigate();
+  const currentUser = () => authStore.currentUser();
   return (
     <AdminLayout
+      user={currentUser()}
+      section="audit"
       onBackToApp={() => navigate({ to: '/app' })}
       onUsers={() => navigate({ to: '/admin/users' })}
       onAuditLogs={() => navigate({ to: '/admin/audit-logs' })}

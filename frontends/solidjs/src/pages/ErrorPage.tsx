@@ -23,8 +23,8 @@ export function ErrorPage(props: ErrorPageProps) {
   const content = contentByStatus[props.statusCode];
 
   return (
-    <section class="surface-card error-card">
-      <span class="eyebrow">Erro {props.statusCode}</span>
+    <section class="surface-card error-card form-card error-preview-card">
+      <span class="metric-pill metric-pill-tag">Erro {props.statusCode}</span>
       <h2 class="error-code">{props.statusCode}</h2>
       <h3 class="form-title">{content.title}</h3>
       <p class="form-copy">{content.copy}</p>
