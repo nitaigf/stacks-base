@@ -1,3 +1,35 @@
+<!-- KHKB GOVERNANCE PORTAL START -->
+---
+
+# 🏛️ Diretrizes de Governança (Database-Centric Docs)
+
+Para manter este projeto limpo e compatível com as regras de desenvolvimento da Kovesh-Halutz, toda a documentação de arquitetura (ADRs), especificações de produto (Specs), instruções de IA (Agents/Skills) e Constituições residem **diretamente no banco de dados central PostgreSQL** (`kh_knowledge`).
+
+Não crie nem edite arquivos markdown locais em pastas como `docs/`, `specs/` ou na raiz do projeto. 
+
+### 🛠️ Comandos de Consulta e Registro (Uso por Humanos e IAs)
+
+*   **Pesquisar decisões/especificações (Busca Semântica):**
+    ```bash
+    ./kh-ask "Sua dúvida, conceito ou termo técnico"
+    ```
+*   **Buscar e Sintetizar Respostas (RAG com IA Local):**
+    ```bash
+    ./kh-ask "Como implementamos o isolamento RLS neste projeto?" --rag
+    ```
+*   **Registrar novas decisões (ADRs) ou requisitos (Specs) direto no banco:**
+    Executa a CLI interativa para criar novos registros indexados vetorialmente:
+    ```bash
+    ./kh-write
+    ```
+    Ou via argumentos (ideal para agentes de IA atualizarem o banco programaticamente):
+    ```bash
+    ./kh-write --type decision --project stacks-base --title "ADR 008" --content "Conteúdo..."
+    ```
+
+---
+<!-- KHKB GOVERNANCE PORTAL END -->
+
 # HOW TO USE - Guia para Novos Colaboradores
 
 Este guia explica como configurar e rodar a stack Stacks Base localmente para desenvolvimento e testes.
